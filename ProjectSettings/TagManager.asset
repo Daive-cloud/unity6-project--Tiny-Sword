@@ -3,15 +3,20 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 3
-  tags: []
+  tags:
+  - Unit
+  - Building
+  - GameManager
+  - LanguageManager
+  - AudioManager
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Ground
   - Water
   - UI
-  - 
+  - Unit
   - 
   - 
   - 

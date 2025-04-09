@@ -7,11 +7,6 @@ public class AIPawn : MonoBehaviour
    private Vector3? m_Destination;
    public Vector3? Destination => m_Destination;
 
-    void Start()
-    {
-        SetDestination(new Vector3(6,0,0));
-    }
-
     void Update()
     {
         if(m_Destination.HasValue)
@@ -28,7 +23,7 @@ public class AIPawn : MonoBehaviour
         }
     }
 
-    private void SetDestination(Vector3? destination)
+    public void SetDestination(Vector3? destination)
    {
        m_Destination = destination;
    }

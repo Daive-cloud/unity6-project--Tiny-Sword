@@ -14,7 +14,7 @@ public class SingletonManager<T> : MonoBehaviour where T : MonoBehaviour
         }
     }
 
-    public virtual T Get()
+    public static T Get()
     {
         var tag = typeof(T).Name;
         GameObject objectManager = GameObject.FindWithTag(tag);
