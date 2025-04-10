@@ -1,23 +1,30 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
 
 public class GameManager : SingletonManager<GameManager>
 {
     #region Parameters
-    public Unit ActiveUnit;
+    private Unit ActiveUnit;
     [SerializeField] private GameObject mousePrefab;
+    [Header("Line Renderer Parameters")]
     [SerializeField] private float rayDuration = 2f; // 射线持续时间，默认为2秒
     [SerializeField] private Color rayColor = Color.green; // 射线颜色
     [SerializeField] private float rayWidth = 0.1f; // 射线宽度
+    [SerializeField] private float clickDetectionRadius = 0.3f; // 点击检测半径
     private LineRenderer movementRay; 
     private Vector2 targetPosition; 
+    private Coroutine showRayRedenerer; 
+    [Header("UI Parameters")]
+    [SerializeField] private GameObject m_ActionBar;
     private bool isMoving = false; 
     #endregion
     
     void Start()
     {
         InitializeLineRenderer();
+        ClearActionBarUI();
     }
 
     void Update()
@@ -27,6 +34,12 @@ public class GameManager : SingletonManager<GameManager>
         if(Input.GetMouseButtonUp(0) || (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Ended))
         {
             DetectClick(mousePosition);
+        }
+
+        if(Input.GetMouseButtonUp(1) && ActiveUnit != null)
+        {
+            ActiveUnit.GetComponent<HumanoidUnit>().UnSelectedUnit();
+            ActiveUnit = null;
         }
 
         // 如果单位正在移动，更新射线
@@ -57,8 +70,8 @@ public class GameManager : SingletonManager<GameManager>
     {
         AudioManager.Get().PlaySFX(0);
         Vector2 worldPoint = Camera.main.ScreenToWorldPoint(_inputPosition); // convert screen position to world position
-        Instantiate(mousePrefab,worldPoint,Quaternion.identity);
-        RaycastHit2D hit = Physics2D.Raycast(worldPoint, Vector2.zero);
+        
+        RaycastHit2D hit = Physics2D.CircleCast(worldPoint, clickDetectionRadius, Vector2.zero);
         if(HasClickedOnUnit(hit,out Unit _unit))
         {
             HandleClickOnNewUnit(_unit,worldPoint);
@@ -71,8 +84,15 @@ public class GameManager : SingletonManager<GameManager>
 
     private void HandleClickOnNewUnit(Unit _unit,Vector2 _worldPosition)
     {
+        if(_unit == ActiveUnit && ActiveUnit != null)
+        {
+            ActiveUnit.GetComponent<HumanoidUnit>().UnSelectedUnit();
+            ActiveUnit = null;
+            return;
+        }
+
         SelectNewUnit(_unit);
-        HandleClickOnOriginalUnit(_worldPosition);
+        ActiveUnit.GetComponent<HumanoidUnit>().UnitSelected();
     }
 
     private bool HasClickedOnUnit(RaycastHit2D hit, out Unit _unit)
@@ -90,6 +110,8 @@ public class GameManager : SingletonManager<GameManager>
     {
         if (ActiveUnit != null)
         {
+            Instantiate(mousePrefab,_worldPosition,Quaternion.identity);
+            ActiveUnit.GetComponent<HumanoidUnit>().UnitActed();
             targetPosition = _worldPosition;
             isMoving = true;
             DrawMovementRay(ActiveUnit.transform.position, _worldPosition);
@@ -99,6 +121,11 @@ public class GameManager : SingletonManager<GameManager>
 
     private void SelectNewUnit(Unit _unit)
     {
+        if(ActiveUnit != null)
+        {
+            ActiveUnit.GetComponent<HumanoidUnit>().UnSelectedUnit();
+        }
+        ShowActionBarUI();
         ActiveUnit = _unit;
     }
     
@@ -110,8 +137,12 @@ public class GameManager : SingletonManager<GameManager>
         movementRay.SetPosition(0, new Vector3(startPosition.x, startPosition.y, 0));
         movementRay.SetPosition(1, new Vector3(endPosition.x, endPosition.y, 0));
         movementRay.enabled = true;
-        
-        StartCoroutine(HideRayAfterDelay(rayDuration));
+
+        if(showRayRedenerer != null)
+        {
+            StopCoroutine(showRayRedenerer);
+        }
+        showRayRedenerer = StartCoroutine(HideRayAfterDelay(rayDuration));
     }
     
     // 更新移动射线
@@ -141,4 +172,23 @@ public class GameManager : SingletonManager<GameManager>
         }
     }
 
+    public void ClearActionBarUI()
+    {
+        m_ActionBar.GetComponent<ActionBar>().ClearActions();
+        m_ActionBar.GetComponent<ActionBar>().HideRectangle();
+    }
+
+    public void ShowActionBarUI()
+    {
+        ClearActionBarUI();
+
+        int hardCodeActions = 2;
+
+        for(int i=0;i<hardCodeActions;i++)
+        {
+            m_ActionBar.GetComponent<ActionBar>().RegisterActions();
+        }
+
+        m_ActionBar.GetComponent<ActionBar>().ShowRectangle();
+    }
 }

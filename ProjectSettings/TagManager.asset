@@ -9,6 +9,7 @@ TagManager:
   - GameManager
   - LanguageManager
   - AudioManager
+  - Water
   layers:
   - Default
   - TransparentFX
@@ -51,6 +52,9 @@ TagManager:
     locked: 0
   - name: Character
     uniqueID: 2172840447
+    locked: 0
+  - name: UI
+    uniqueID: 1417067153
     locked: 0
   m_RenderingLayers:
   - Default
