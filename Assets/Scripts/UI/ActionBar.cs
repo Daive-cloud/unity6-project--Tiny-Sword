@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 public class ActionBar : MonoBehaviour
@@ -14,9 +15,10 @@ public class ActionBar : MonoBehaviour
         HideRectangle();
     }
 
-    public void RegisterActions()
+    public void RegisterActions(Sprite _icon,UnityAction _action)
     {
         var actionButton = Instantiate(m_ActionButtonPrefab,transform);
+        actionButton.GetComponent<ActionButton>().InitializeButton(_icon,_action);
         actionButtons.Add(actionButton.GetComponent<ActionButton>());
     }
 
@@ -24,7 +26,7 @@ public class ActionBar : MonoBehaviour
     {
         if(actionButtons.Count > 0)
         {
-            for(int i=actionButtons.Count;i >=0 ;i--)
+            for(int i = actionButtons.Count - 1; i >= 0; i--)
             {
                 Destroy(actionButtons[i].gameObject);
                 actionButtons.RemoveAt(i);

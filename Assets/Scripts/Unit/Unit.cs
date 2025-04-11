@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public abstract class Unit : MonoBehaviour
 {
@@ -7,9 +8,12 @@ public abstract class Unit : MonoBehaviour
 
     public float facingDir {get;private set;} = 1;
     public bool isFacingRight = true;
+     [Header("Mono Actions")]
+    public List<ActionSO> actions = new();
 
     protected virtual void Awake()
     {
+        
         if(TryGetComponent<AIPawn>(out var pawn))
         {
             m_AIPawn = pawn;

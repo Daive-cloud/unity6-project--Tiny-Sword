@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections;
-using System.Collections.Generic;
-using UnityEditor;
+using UnityEngine.EventSystems;
+using UnityEngine.Tilemaps;
 
 public class GameManager : SingletonManager<GameManager>
 {
@@ -15,10 +15,18 @@ public class GameManager : SingletonManager<GameManager>
     [SerializeField] private float clickDetectionRadius = 0.3f; // 点击检测半径
     private LineRenderer movementRay; 
     private Vector2 targetPosition; 
+    private Vector2 m_MousePosition;
+    
     private Coroutine showRayRedenerer; 
     [Header("UI Parameters")]
     [SerializeField] private GameObject m_ActionBar;
     private bool isMoving = false; 
+    private PlacementProcess m_PlacementProcess;
+
+    [Header("Tilemaps")]
+    [SerializeField] private Tilemap m_WalkableTilemap;
+    [SerializeField] private Tilemap m_overlayTilemap;
+
     #endregion
     
     void Start()
@@ -27,28 +35,38 @@ public class GameManager : SingletonManager<GameManager>
         ClearActionBarUI();
     }
 
-    void Update()
+    void Update() 
     {
-        Vector2 mousePosition = Input.touchCount > 0 ? Input.GetTouch(0).position : Input.mousePosition;
-
-        if(Input.GetMouseButtonUp(0) || (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Ended))
+        if(m_PlacementProcess != null)
         {
-            DetectClick(mousePosition);
+            m_PlacementProcess.Update();
         }
+        else{
+             if(HvoUtils.IsLeftClickOrTapDown)
+            {
+                m_MousePosition = HvoUtils.MousePosition;
+            }
+        
+            if(HvoUtils.IsLeftClickOrTapUp)
+            {
+                DetectClick(m_MousePosition);
+            }
 
-        if(Input.GetMouseButtonUp(1) && ActiveUnit != null)
-        {
-            ActiveUnit.GetComponent<HumanoidUnit>().UnSelectedUnit();
-            ActiveUnit = null;
-        }
+            if(Input.GetMouseButtonUp(1) && ActiveUnit != null)
+            {
+                ClearActionBarUI();
+                ActiveUnit.GetComponent<HumanoidUnit>().UnSelectedUnit();
+                ActiveUnit = null;
+            }
 
-        // 如果单位正在移动，更新射线
-        if (isMoving && ActiveUnit != null && movementRay != null && movementRay.enabled)
-        {
-            UpdateMovementRay();
+            if (isMoving && ActiveUnit != null && movementRay != null && movementRay.enabled)
+            {
+                UpdateMovementRay();
+            }
         }
     }
 
+    #region Detect Click on Unit
     private void InitializeLineRenderer()
     {
         movementRay = GetComponent<LineRenderer>();
@@ -68,6 +86,11 @@ public class GameManager : SingletonManager<GameManager>
     
     private void DetectClick(Vector2 _inputPosition)
     {
+        if(IsPointerOverUIElement())
+        {
+            return;
+        }
+
         AudioManager.Get().PlaySFX(0);
         Vector2 worldPoint = Camera.main.ScreenToWorldPoint(_inputPosition); // convert screen position to world position
         
@@ -125,7 +148,7 @@ public class GameManager : SingletonManager<GameManager>
         {
             ActiveUnit.GetComponent<HumanoidUnit>().UnSelectedUnit();
         }
-        ShowActionBarUI();
+        ShowActionBarUI(_unit);
         ActiveUnit = _unit;
     }
     
@@ -171,6 +194,7 @@ public class GameManager : SingletonManager<GameManager>
             isMoving = false;
         }
     }
+    #endregion
 
     public void ClearActionBarUI()
     {
@@ -178,17 +202,40 @@ public class GameManager : SingletonManager<GameManager>
         m_ActionBar.GetComponent<ActionBar>().HideRectangle();
     }
 
-    public void ShowActionBarUI()
+    public void ShowActionBarUI(Unit _unit)
     {
         ClearActionBarUI();
 
-        int hardCodeActions = 2;
-
-        for(int i=0;i<hardCodeActions;i++)
-        {
-            m_ActionBar.GetComponent<ActionBar>().RegisterActions();
-        }
-
+       if(_unit.actions.Count == 0)
+       {
+            return;
+       }
         m_ActionBar.GetComponent<ActionBar>().ShowRectangle();
+        
+        foreach(var action in _unit.actions)
+        {
+            m_ActionBar.GetComponent<ActionBar>().RegisterActions(action.Icon,() => action.ExecuteAction());
+        }
+    }
+    /// <summary>
+    /// 这个方法是用来判断是否触摸到了UI元素，如果是的话就不处理点击事件
+    /// </summary>
+    /// <returns></returns>
+    private bool IsPointerOverUIElement()
+    {
+        if(Input.touchCount > 0)
+        {
+            var touch = Input.GetTouch(0);
+            return EventSystem.current.IsPointerOverGameObject(touch.fingerId);
+        }
+        else{
+            return EventSystem.current.IsPointerOverGameObject();
+        }
+    }
+
+    public void StartBuildProcess(BuildActionSO _buildAction)
+    {
+        m_PlacementProcess = new(_buildAction,m_WalkableTilemap,m_overlayTilemap);
+        m_PlacementProcess.ShowPlacementOutline();
     }
 }

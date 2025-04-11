@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4f18942d17dcb346af16c76b31f7148, type: 3}
+  m_Name: BuildTower
+  m_EditorClassIdentifier: 
+  Icon: {fileID: -4866884309602757033, guid: 501d2d8a18853024792ed5aa26b0239b, type: 3}
+  ActionName: Bulid Tower
+  ID: 793203f8-fdd6-4de4-9260-71228dfd1ca1
+  m_PlacemantSprite: {fileID: -4866884309602757033, guid: 16561b6dd86204d43ab0b13f82d99689, type: 3}
+  m_FoundationSprite: {fileID: 0}
+  m_CompletionSprite: {fileID: 0}
+  m_GoldCost: 0
+  m_WoodCost: 0
+  m_BuildingSize: {x: 2, y: 3, z: 0}
+  m_BuildingOffset: {x: -1, y: -2, z: 0}

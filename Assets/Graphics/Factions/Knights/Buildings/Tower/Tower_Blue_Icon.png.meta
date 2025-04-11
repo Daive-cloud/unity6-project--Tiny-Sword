@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 16561b6dd86204d43ab0b13f82d99689
+guid: 501d2d8a18853024792ed5aa26b0239b
 TextureImporter:
   internalIDToNameTable:
   - first:
@@ -129,10 +129,10 @@ TextureImporter:
       name: Tower_Blue_0
       rect:
         serializedVersion: 2
-        x: 6
-        y: 31
-        width: 115
-        height: 174
+        x: 0
+        y: 15
+        width: 128
+        height: 208
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
