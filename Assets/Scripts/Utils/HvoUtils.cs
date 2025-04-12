@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public static class HvoUtils 
 {
@@ -11,4 +12,15 @@ public static class HvoUtils
     public static Vector2 InputHoldWorldPosition => Input.touchCount > 0 ?
         Camera.main.ScreenToWorldPoint(Input.GetTouch(0).position) : Input.GetMouseButton(0) ? Camera.main.ScreenToWorldPoint(Input.mousePosition) : Vector2.zero;
 
+    public static bool IsPointerOverUIElement()
+    {
+        if(Input.touchCount > 0)
+        {
+            var touch = Input.GetTouch(0);
+            return EventSystem.current.IsPointerOverGameObject(touch.fingerId);
+        }
+        else{
+            return EventSystem.current.IsPointerOverGameObject();
+        }
+    }
 }

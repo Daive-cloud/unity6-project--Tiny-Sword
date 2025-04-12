@@ -4,36 +4,42 @@ using UnityEngine.Tilemaps;
 public class PlacementProcess 
 {
     private GameObject m_PlacementOutline;
-    private BuildActionSO buildAction;
+    private BuildActionSO m_BuildAction;
     private Tilemap m_WalkableTilemap;
     private Tilemap m_overlayTilemap;
+    private Tilemap[] m_unreachableTilemaps;
     private Sprite m_TileholderSprite;
     private Vector3Int[] m_HighlightedPosition;
-    public PlacementProcess(BuildActionSO _buildAction,Tilemap _walkableTilemap,Tilemap _overlayTilemap)
+    public BuildActionSO BuildAction => m_BuildAction;
+    public PlacementProcess(BuildActionSO _buildAction,Tilemap _walkableTilemap,Tilemap _overlayTilemap,Tilemap[] _unreachableTilemaps)
     {
-        buildAction = _buildAction;
+        m_BuildAction = _buildAction;
         m_WalkableTilemap = _walkableTilemap;
         m_overlayTilemap = _overlayTilemap;
         m_TileholderSprite = Resources.Load<Sprite>("Image/Tileholder");
+        m_unreachableTilemaps = _unreachableTilemaps;
     }   
 
     public void ShowPlacementOutline()
     {
         m_PlacementOutline = new GameObject("PlacementOutline");
-        var renderer = m_PlacementOutline.AddComponent<SpriteRenderer>();
-        renderer.sortingOrder = 100;
-        renderer.color = new Color(1,1,1,.54f);
-        renderer.sprite = buildAction.PlacemantSprite;
     }
 
     public void Update()
     {
         Vector2 worldPosition = HvoUtils.InputHoldWorldPosition;
 
+        if(HvoUtils.IsPointerOverUIElement())
+            return;
+        
+        if(m_PlacementOutline != null)
+        {
+            HigtlightPlacementArea(m_PlacementOutline.transform.position);
+        }
+
         if(worldPosition != Vector2.zero)
         {
             m_PlacementOutline.transform.position = SnapToGrid(worldPosition);
-            HigtlightPlacementArea(m_PlacementOutline.transform.position);
         }
     }
 
@@ -54,12 +60,12 @@ public class PlacementProcess
         }
     }
 
-      private void HigtlightPlacementArea(Vector3 _outlinePosition)
+    private void HigtlightPlacementArea(Vector3 _outlinePosition)
     {
         ClearAllHighlights();
 
-        Vector3Int buildingSize = buildAction.BulidingSize;
-        Vector3 pivotPosition = _outlinePosition + buildAction.BuildingOffset;
+        Vector3Int buildingSize = m_BuildAction.BulidingSize;
+        Vector3 pivotPosition = _outlinePosition + m_BuildAction.BuildingOffset;
         m_HighlightedPosition = new Vector3Int[buildingSize.x * buildingSize.y];
 
         for(int x=0;x<buildingSize.x;x++)
@@ -77,7 +83,75 @@ public class PlacementProcess
             tile.sprite = m_TileholderSprite;
             m_overlayTilemap.SetTile(position, tile);
             m_overlayTilemap.SetTileFlags(position, TileFlags.None);
-            m_overlayTilemap.SetColor(position, Color.green);
+
+            if(canPlaceBuilding(position))
+            {
+                 m_overlayTilemap.SetColor(position, Color.green);
+            }
+            else{
+                 m_overlayTilemap.SetColor(position, Color.red);
+            }
+           
         }
     }
+    public void ClearupPlacement()
+    {
+        Object.Destroy(m_PlacementOutline);
+        ClearAllHighlights();
+    }
+
+    public bool TryFinalizePlacement(out Vector3 _placementPosition)
+    {
+        if(IsPlacementValid())
+        {
+            _placementPosition = m_PlacementOutline.transform.position;
+            ClearupPlacement();
+            return true;
+        }
+        _placementPosition = Vector3.zero;
+        return false;
+    }
+
+    private bool IsPlacementValid()
+    {
+        foreach(var position in m_HighlightedPosition)
+        {
+            if(!canPlaceBuilding(position))
+                return false;
+        }
+        return true;
+    }
+    
+    #region Detect Place to Place Constructure
+    private bool canPlaceBuilding(Vector3Int _placePosition)
+    {
+        return m_WalkableTilemap.HasTile(_placePosition) && !IsPlaceOverUnreachableArea(_placePosition) && !IsPlaceOverObstacle(_placePosition);
+    }
+
+    private bool IsPlaceOverUnreachableArea(Vector3Int _placePosition)
+    {
+        foreach(var tilemap in m_unreachableTilemaps)
+        {
+            if(tilemap.HasTile(_placePosition))
+                return true;
+        }
+        return false;
+    }
+
+    private bool IsPlaceOverObstacle(Vector3Int _placePosition)
+    {
+        Vector3 tileSize = m_WalkableTilemap.cellSize;
+        Collider2D[] colliders = Physics2D.OverlapBoxAll(_placePosition + tileSize * .5f,tileSize * .9f,0f);
+        foreach(var hit in colliders)
+        {
+            if(hit.gameObject.tag == "Unit" || hit.gameObject.tag == "Building")
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    #endregion
 }

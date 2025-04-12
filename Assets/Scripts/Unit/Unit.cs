@@ -1,47 +1,81 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+public enum UnitState
+{
+    Idle,Moving,Attacking,Chopping,Mining
+}
+
+public enum UnitTask
+{
+    None,Build,Chop,Mine,Attack
+}
+
 public abstract class Unit : MonoBehaviour
 {
-    public bool isMoving;
-    protected AIPawn m_AIPawn;
-
-    public float facingDir {get;private set;} = 1;
-    public bool isFacingRight = true;
+    protected SpriteRenderer sr => GetComponentInChildren<SpriteRenderer>();
+    private Material m_originalMaterial;
+   
      [Header("Mono Actions")]
     public List<ActionSO> actions = new();
+    [Header("Object Detection")]
+    public float ObjectDetectionRadius = 3f; 
+    [SerializeField] private Color color;
+
+    public UnitState currentState {get;protected set;} = UnitState.Idle;
+    public UnitTask currentTask {get;protected set;} = UnitTask.None;
 
     protected virtual void Awake()
     {
-        
-        if(TryGetComponent<AIPawn>(out var pawn))
-        {
-            m_AIPawn = pawn;
-        }
+       
     }
 
-    public virtual void MoveToDestionation(Vector2 _destination)
-    {   
-        m_AIPawn.SetDestination(_destination);
-        FlipController(_destination);
-    }
-
-    protected void FlipController(Vector2 mousePosition)
+    protected virtual void Start()
     {
-        if(mousePosition.x > transform.position.x)
-        {
-            if(!isFacingRight) Flip(); 
-        }
-        else if(mousePosition.x < transform.position.x)
-        {
-            if(isFacingRight) Flip(); 
-        }
+        m_originalMaterial = sr.material;
     }
 
-    protected void Flip()
+    public virtual void UnitSelected()
     {
-        facingDir *= -1;
-        isFacingRight = !isFacingRight;
-        transform.Rotate(0, 180, 0);
+        sr.material = Resources.Load<Material>("Materials/Outline");
     }
+
+    public virtual void UnitUnselected()
+    {
+        sr.material = m_originalMaterial;
+    }
+
+    public Collider2D[] UnitProximityDection()
+    {
+        return Physics2D.OverlapCircleAll(transform.position, ObjectDetectionRadius);
+    }
+
+    void OnDrawGizmos()
+    {
+        Gizmos.color = color;
+        Gizmos.DrawWireSphere(transform.position, ObjectDetectionRadius);
+    }
+
+    public void ChangeState(UnitState _newState)
+    {
+        OnChangeState(currentState, _newState);
+    }
+
+    protected virtual void OnChangeState(UnitState _originalState, UnitState _newState)
+    {
+        currentState = _newState;
+    }
+ 
+    public void RegisterTask(UnitTask _newTask)
+    {
+        OnRegisterTask(currentTask, _newTask);
+    }
+
+    protected virtual void OnRegisterTask(UnitTask _originalTask, UnitTask _newTask)
+    {
+        currentTask = _newTask;
+    }
+
+
+
 }

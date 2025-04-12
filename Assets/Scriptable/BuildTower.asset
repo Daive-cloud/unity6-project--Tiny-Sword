@@ -15,10 +15,10 @@ MonoBehaviour:
   Icon: {fileID: -4866884309602757033, guid: 501d2d8a18853024792ed5aa26b0239b, type: 3}
   ActionName: Bulid Tower
   ID: 793203f8-fdd6-4de4-9260-71228dfd1ca1
-  m_PlacemantSprite: {fileID: -4866884309602757033, guid: 16561b6dd86204d43ab0b13f82d99689, type: 3}
-  m_FoundationSprite: {fileID: 0}
+  m_FoundationSprite: {fileID: -1164405640202335315, guid: ff8df02804510d348b6086348b6e6b07, type: 3}
   m_CompletionSprite: {fileID: 0}
-  m_GoldCost: 0
-  m_WoodCost: 0
+  m_TowerPrefab: {fileID: 3316547317749023911, guid: 714534e2fe1c08d4b813e094ffa495cb, type: 3}
+  m_GoldCost: 300
+  m_WoodCost: 100
   m_BuildingSize: {x: 2, y: 3, z: 0}
   m_BuildingOffset: {x: -1, y: -2, z: 0}

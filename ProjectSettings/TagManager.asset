@@ -10,6 +10,7 @@ TagManager:
   - LanguageManager
   - AudioManager
   - Water
+  - Trees
   layers:
   - Default
   - TransparentFX

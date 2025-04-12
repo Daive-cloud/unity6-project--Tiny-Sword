@@ -2,36 +2,56 @@ using UnityEngine;
 using System.Collections;
 using UnityEngine.EventSystems;
 using UnityEngine.Tilemaps;
+using DG.Tweening;
+
 
 public class GameManager : SingletonManager<GameManager>
 {
     #region Parameters
     private Unit ActiveUnit;
+    private Unit[] SelectedUnits = new Unit[100];
     [SerializeField] private GameObject mousePrefab;
     [Header("Line Renderer Parameters")]
     [SerializeField] private float rayDuration = 2f; // 射线持续时间，默认为2秒
     [SerializeField] private Color rayColor = Color.green; // 射线颜色
     [SerializeField] private float rayWidth = 0.1f; // 射线宽度
     [SerializeField] private float clickDetectionRadius = 0.3f; // 点击检测半径
-    private LineRenderer movementRay; 
+    [SerializeField] private LineRenderer movementRay; 
     private Vector2 targetPosition; 
     private Vector2 m_MousePosition;
-    
     private Coroutine showRayRedenerer; 
     [Header("UI Parameters")]
     [SerializeField] private GameObject m_ActionBar;
+    [SerializeField] private GameObject m_BuildComfiremationBar;
     private bool isMoving = false; 
     private PlacementProcess m_PlacementProcess;
+
+    [Header("Multi-Selection")]
+    private Vector2 multiSelectStartPos;
+    private bool isMultiSelecting = false;
+    [SerializeField] private LineRenderer multiSelectRay;
+    [SerializeField] private float multiSelectRayWidth = 0.05f;
+    [SerializeField] private Color multiSelectRayColor = Color.yellow;
 
     [Header("Tilemaps")]
     [SerializeField] private Tilemap m_WalkableTilemap;
     [SerializeField] private Tilemap m_overlayTilemap;
+    [SerializeField] private Tilemap[] m_unreachableTilemaps;
+    
+    [Header("Resources Parameters")]
+    [SerializeField] private int m_Gold = 100;
+    [SerializeField] private int m_Wood = 100;
+    [SerializeField] private int m_Meat = 1000;
+    public int Gold => m_Gold;
+    public int Wood => m_Wood;
+    public int Meat => m_Meat;
 
     #endregion
     
     void Start()
     {
         InitializeLineRenderer();
+        InitializeMultiSelectRenderer();
         ClearActionBarUI();
     }
 
@@ -41,35 +61,136 @@ public class GameManager : SingletonManager<GameManager>
         {
             m_PlacementProcess.Update();
         }
-        else{
-             if(HvoUtils.IsLeftClickOrTapDown)
-            {
-                m_MousePosition = HvoUtils.MousePosition;
-            }
-        
-            if(HvoUtils.IsLeftClickOrTapUp)
-            {
-                DetectClick(m_MousePosition);
-            }
+        else
+        {
+            RegisterSquare(); // 绘制出一个矩形框选单位
 
-            if(Input.GetMouseButtonUp(1) && ActiveUnit != null)
+            CommandUnitToMove(); // 只会单个单位进行移动
+
+            if (Input.GetMouseButtonUp(1) && ActiveUnit != null)
             {
                 ClearActionBarUI();
-                ActiveUnit.GetComponent<HumanoidUnit>().UnSelectedUnit();
-                ActiveUnit = null;
+                UnSelectUnit();
             }
 
-            if (isMoving && ActiveUnit != null && movementRay != null && movementRay.enabled)
-            {
-                UpdateMovementRay();
-            }
         }
     }
+
+    private void CommandUnitToMove()
+    {
+        if (HvoUtils.IsLeftClickOrTapDown)
+        {
+            m_MousePosition = HvoUtils.MousePosition;
+        }
+
+        if (HvoUtils.IsLeftClickOrTapUp)
+        {
+            DetectClick(m_MousePosition);
+        }
+
+        if (isMoving && ActiveUnit != null && movementRay != null && movementRay.enabled)
+        {
+            UpdateMovementRay();
+        }
+    }
+
+    #region Generate Square Area
+    private void RegisterSquare()
+    {
+        // 左键按下开始框选
+        if (Input.GetMouseButtonDown(0))
+        {
+            StartMultiSelect(Input.mousePosition);
+        }
+
+        // 左键按住时更新框选
+        if (Input.GetMouseButton(0) && isMultiSelecting)
+        {
+            UpdateMultiSelect(Input.mousePosition);
+        }
+
+        // 左键抬起结束框选
+        if (Input.GetMouseButtonUp(0))
+        {
+            EndMultiSelect();
+        }
+    }
+
+    private void InitializeMultiSelectRenderer()
+    {
+        //multiSelectRay = gameObject.GetComponent<LineRenderer>();
+        multiSelectRay.startWidth = multiSelectRayWidth;
+        multiSelectRay.endWidth = multiSelectRayWidth;
+        multiSelectRay.material = new Material(Shader.Find("Sprites/Default"));
+        multiSelectRay.startColor = multiSelectRayColor;
+        multiSelectRay.endColor = multiSelectRayColor;
+        multiSelectRay.positionCount = 5; // 绘制一个闭合的矩形
+        multiSelectRay.loop = true;
+        multiSelectRay.enabled = false;
+    }
+
+    private void StartMultiSelect(Vector2 startPos)
+    {
+        // 如果点击在UI上，不进行框选
+        if(HvoUtils.IsPointerOverUIElement())
+            return;
+
+        multiSelectStartPos = Camera.main.ScreenToWorldPoint(startPos);
+        isMultiSelecting = true;
+    }
+
+    private void UpdateMultiSelect(Vector2 currentPos)
+    {
+        Vector2 currentWorldPos = Camera.main.ScreenToWorldPoint(currentPos);
+        
+        // 计算矩形的四个角点
+        Vector3 topLeft = new Vector3(Mathf.Min(multiSelectStartPos.x, currentWorldPos.x), 
+                                      Mathf.Max(multiSelectStartPos.y, currentWorldPos.y), 0);
+        Vector3 topRight = new Vector3(Mathf.Max(multiSelectStartPos.x, currentWorldPos.x), 
+                                       Mathf.Max(multiSelectStartPos.y, currentWorldPos.y), 0);
+        Vector3 bottomRight = new Vector3(Mathf.Max(multiSelectStartPos.x, currentWorldPos.x), 
+                                          Mathf.Min(multiSelectStartPos.y, currentWorldPos.y), 0);
+        Vector3 bottomLeft = new Vector3(Mathf.Min(multiSelectStartPos.x, currentWorldPos.x), 
+                                         Mathf.Min(multiSelectStartPos.y, currentWorldPos.y), 0);
+
+        // 设置LineRenderer的点以绘制矩形
+        multiSelectRay.SetPosition(0, topLeft);
+        multiSelectRay.SetPosition(1, topRight);
+        multiSelectRay.SetPosition(2, bottomRight);
+        multiSelectRay.SetPosition(3, bottomLeft);
+        multiSelectRay.SetPosition(4, topLeft);
+        multiSelectRay.enabled = true;
+    }
+
+    private void EndMultiSelect()
+    {
+        if (!isMultiSelecting)
+            return;
+
+        isMultiSelecting = false;
+        
+        // 确保线渲染器被禁用
+        if (multiSelectRay != null)
+        {
+            multiSelectRay.enabled = false;
+        }
+    }
+
+    private void UnSelectUnit()
+    {
+        if(ActiveUnit != null)
+        {
+            ActiveUnit.GetComponent<Unit>().UnitUnselected();
+            ActiveUnit = null;
+        }
+    }
+
+    #endregion
 
     #region Detect Click on Unit
     private void InitializeLineRenderer()
     {
-        movementRay = GetComponent<LineRenderer>();
+        // movementRay = GetComponent<LineRenderer>();
         if (movementRay == null)
         {
             movementRay = gameObject.AddComponent<LineRenderer>();
@@ -86,7 +207,7 @@ public class GameManager : SingletonManager<GameManager>
     
     private void DetectClick(Vector2 _inputPosition)
     {
-        if(IsPointerOverUIElement())
+        if(HvoUtils.IsPointerOverUIElement())
         {
             return;
         }
@@ -109,13 +230,13 @@ public class GameManager : SingletonManager<GameManager>
     {
         if(_unit == ActiveUnit && ActiveUnit != null)
         {
-            ActiveUnit.GetComponent<HumanoidUnit>().UnSelectedUnit();
-            ActiveUnit = null;
+            ClearActionBarUI();
+            UnSelectUnit();
             return;
         }
 
         SelectNewUnit(_unit);
-        ActiveUnit.GetComponent<HumanoidUnit>().UnitSelected();
+        ActiveUnit.GetComponent<Unit>().UnitSelected();
     }
 
     private bool HasClickedOnUnit(RaycastHit2D hit, out Unit _unit)
@@ -131,14 +252,14 @@ public class GameManager : SingletonManager<GameManager>
 
     private void HandleClickOnOriginalUnit(Vector2 _worldPosition)
     {
-        if (ActiveUnit != null)
+        if (ActiveUnit != null && ActiveUnit.GetComponent<HumanoidUnit>() != null)
         {
             Instantiate(mousePrefab,_worldPosition,Quaternion.identity);
             ActiveUnit.GetComponent<HumanoidUnit>().UnitActed();
             targetPosition = _worldPosition;
             isMoving = true;
             DrawMovementRay(ActiveUnit.transform.position, _worldPosition);
-            ActiveUnit.MoveToDestionation(_worldPosition);
+            ActiveUnit.GetComponent<HumanoidUnit>().MoveToDestionation(_worldPosition);
         }
     }
 
@@ -146,7 +267,7 @@ public class GameManager : SingletonManager<GameManager>
     {
         if(ActiveUnit != null)
         {
-            ActiveUnit.GetComponent<HumanoidUnit>().UnSelectedUnit();
+            ActiveUnit.GetComponent<Unit>().UnitUnselected();
         }
         ShowActionBarUI(_unit);
         ActiveUnit = _unit;
@@ -217,25 +338,84 @@ public class GameManager : SingletonManager<GameManager>
             m_ActionBar.GetComponent<ActionBar>().RegisterActions(action.Icon,() => action.ExecuteAction());
         }
     }
-    /// <summary>
-    /// 这个方法是用来判断是否触摸到了UI元素，如果是的话就不处理点击事件
-    /// </summary>
-    /// <returns></returns>
-    private bool IsPointerOverUIElement()
+   
+    public void StartBuildProcess(BuildActionSO _buildAction)
     {
-        if(Input.touchCount > 0)
+        if(m_PlacementProcess != null)
+            return;
+
+        // 先创建PlacementProcess
+        m_PlacementProcess = new(_buildAction,m_WalkableTilemap,m_overlayTilemap,m_unreachableTilemaps);
+        
+        // 然后再使用它的属性
+        m_BuildComfiremationBar.GetComponent<ConstructureUI>().ShowRectanle(_buildAction.GoldCost, _buildAction.WoodCost);
+        m_BuildComfiremationBar.GetComponent<ConstructureUI>().RegisterHooks(ComfirmConstruction,CancelConstruction);
+        
+        m_PlacementProcess.ShowPlacementOutline();
+    }
+
+    private void ComfirmConstruction()
+    {
+        // 安全检查：确保BuildAction不为null
+        var buildAction = m_PlacementProcess.BuildAction;
+        if (buildAction == null)
         {
-            var touch = Input.GetTouch(0);
-            return EventSystem.current.IsPointerOverGameObject(touch.fingerId);
+            return;
         }
-        else{
-            return EventSystem.current.IsPointerOverGameObject();
+
+        // 检查资源是否足够
+        if(!TryDeduckResources(buildAction.GoldCost, buildAction.WoodCost, 0))
+        {
+            UnableToPlaceConstructure();
+            return;
+        }
+
+        // 尝试放置建筑
+        if(m_PlacementProcess.TryFinalizePlacement(out Vector3 _placementPosition))
+        {
+            UnSelectUnit();
+            ClearupPlacement();
+            ClearActionBarUI();
+            new BuildingProcess(buildAction, _placementPosition);
+            AudioManager.Get().PlaySFX(3);
+        }
+        else
+        {
+            UnableToPlaceConstructure();
         }
     }
 
-    public void StartBuildProcess(BuildActionSO _buildAction)
+    private void UnableToPlaceConstructure()
     {
-        m_PlacementProcess = new(_buildAction,m_WalkableTilemap,m_overlayTilemap);
-        m_PlacementProcess.ShowPlacementOutline();
+        // 为确认按钮添加缩放动画效果
+        m_BuildComfiremationBar.GetComponent<ConstructureUI>().comfirmButton.transform
+        .DOScale(new Vector3(.8f, .8f, .8f), .05f)
+        .SetEase(Ease.OutBack)
+        .OnComplete(() =>
+        {
+            m_BuildComfiremationBar.GetComponent<ConstructureUI>().comfirmButton.transform
+                .DOScale(Vector3.one, .05f)
+                .SetEase(Ease.InBack);
+        });
+        AudioManager.Get().PlaySFX(2);
     }
+
+    private void CancelConstruction()
+    {
+        ClearupPlacement();
+        AudioManager.Get().PlaySFX(1);
+    }
+
+    private void ClearupPlacement()
+    {
+        m_PlacementProcess.ClearupPlacement();
+        m_PlacementProcess = null;
+        m_BuildComfiremationBar.GetComponent<ConstructureUI>().HideRectangle();
+    }
+
+    private bool TryDeduckResources(int _goldCost,int _woodCost,int _meatCost)
+    {
+        return m_Gold >= _goldCost && m_Wood >= _woodCost && m_Meat >= _meatCost;
+    }
+
 }
