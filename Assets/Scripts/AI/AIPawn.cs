@@ -11,6 +11,7 @@ public class AIPawn : MonoBehaviour
     {
         if(m_Destination.HasValue)
         {
+            // 这里才是实际上的位置更新
             var direction = m_Destination.Value - transform.position;
             transform.position += direction.normalized * moveSpeed * Time.deltaTime;
 
@@ -23,8 +24,13 @@ public class AIPawn : MonoBehaviour
         }
     }
 
-    public void SetDestination(Vector3? destination)
+    public void RegisterDestination(Vector3? destination)
    {
        m_Destination = destination;
+   }
+
+   public void StopMoving()
+   {
+       m_Destination = null;
    }
 }

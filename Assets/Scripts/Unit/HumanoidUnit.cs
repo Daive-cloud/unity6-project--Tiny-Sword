@@ -9,7 +9,7 @@ public class HumanoidUnit : Unit
 
     public float facingDir {get;private set;} = 1;
     public bool isFacingRight = true;
-    private Animator anim => GetComponentInChildren<Animator>();
+    protected Animator anim => GetComponentInChildren<Animator>();
     protected Vector2 m_Velocity;
     protected Vector3 m_lastPosition;
     [Header("Audio Sources")]
@@ -38,6 +38,7 @@ public class HumanoidUnit : Unit
     {
         if(!isDead)
         {
+            // 这里的逻辑是处理动画的播放逻辑，以及移动状态的更新
             m_Velocity = new Vector2(transform.position.x - m_lastPosition.x, transform.position.y - m_lastPosition.y) / Time.deltaTime;
             m_lastPosition = transform.position;
             var state = m_Velocity.magnitude > 0f ? UnitState.Moving : UnitState.Idle;
@@ -78,8 +79,15 @@ public class HumanoidUnit : Unit
     #region Move Functions
      public virtual void MoveToDestionation(Vector2 _destination)
     {   
-        m_AIPawn.SetDestination(_destination);
+        m_AIPawn.RegisterDestination(_destination);
         FlipController(_destination);
+
+        OnRegisterDestination();
+    }
+
+    protected virtual void OnRegisterDestination()
+    {
+
     }
 
     protected void FlipController(Vector2 mousePosition)

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 public enum UnitState
 {
-    Idle,Moving,Attacking,Chopping,Mining
+    Idle,Moving,Attacking,Chopping,Mining,Building
 }
 
 public enum UnitTask
@@ -19,11 +19,14 @@ public abstract class Unit : MonoBehaviour
      [Header("Mono Actions")]
     public List<ActionSO> actions = new();
     [Header("Object Detection")]
-    public float ObjectDetectionRadius = 3f; 
+    public float ObjectDetectionRadius = 1f; 
     [SerializeField] private Color color;
 
     public UnitState currentState {get;protected set;} = UnitState.Idle;
     public UnitTask currentTask {get;protected set;} = UnitTask.None;
+    public Unit Target {get;protected set;} = null;
+
+    public bool HasRegisterUnit => Target != null;
 
     protected virtual void Awake()
     {
@@ -56,6 +59,7 @@ public abstract class Unit : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position, ObjectDetectionRadius);
     }
 
+    #region State Task Target
     public void ChangeState(UnitState _newState)
     {
         OnChangeState(currentState, _newState);
@@ -64,6 +68,11 @@ public abstract class Unit : MonoBehaviour
     protected virtual void OnChangeState(UnitState _originalState, UnitState _newState)
     {
         currentState = _newState;
+    }
+
+    public void RegisterTarget(Unit _target)
+    {
+        Target = _target;
     }
  
     public void RegisterTask(UnitTask _newTask)
@@ -76,6 +85,13 @@ public abstract class Unit : MonoBehaviour
         currentTask = _newTask;
     }
 
+    protected virtual void ResetUnit()
+    {
+        RegisterTask(UnitTask.None);
+        if(HasRegisterUnit) RegisterTarget(null);
+    }
+
+    #endregion
 
 
 }

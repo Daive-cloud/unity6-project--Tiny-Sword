@@ -8,7 +8,7 @@ using DG.Tweening;
 public class GameManager : SingletonManager<GameManager>
 {
     #region Parameters
-    private Unit ActiveUnit;
+    public Unit ActiveUnit;
     private Unit[] SelectedUnits = new Unit[100];
     [SerializeField] private GameObject mousePrefab;
     [Header("Line Renderer Parameters")]
@@ -218,15 +218,14 @@ public class GameManager : SingletonManager<GameManager>
         RaycastHit2D hit = Physics2D.CircleCast(worldPoint, clickDetectionRadius, Vector2.zero);
         if(HasClickedOnUnit(hit,out Unit _unit))
         {
-            HandleClickOnNewUnit(_unit,worldPoint);
+            HandleClickOnNewUnit(_unit);
         }
         else{
             HandleClickOnOriginalUnit(worldPoint);
         }
-
     }
 
-    private void HandleClickOnNewUnit(Unit _unit,Vector2 _worldPosition)
+    private void HandleClickOnNewUnit(Unit _unit)
     {
         if(_unit == ActiveUnit && ActiveUnit != null)
         {
@@ -234,9 +233,22 @@ public class GameManager : SingletonManager<GameManager>
             UnSelectUnit();
             return;
         }
+        else if(WorkerClickedOnUnfinishedUnit(_unit))
+        {
+            (ActiveUnit as WorkerUnit).SendToBuildingProcess(_unit as StructureUnit); // 这里为了方便使用多态而使用了基类型，在某些情况下要进行类型的安全转换
+            (ActiveUnit as WorkerUnit).buildingSound.Play();
+            return;
+        }
 
         SelectNewUnit(_unit);
         ActiveUnit.GetComponent<Unit>().UnitSelected();
+    }
+
+    private bool WorkerClickedOnUnfinishedUnit(Unit _clickedUnit)  // 这里已经帮助过滤了，是还未完成建造的建筑！
+    {
+        return ActiveUnit is WorkerUnit &&
+                _clickedUnit is StructureUnit structure &&
+                structure.IsUnderConstruction;
     }
 
     private bool HasClickedOnUnit(RaycastHit2D hit, out Unit _unit)
@@ -247,6 +259,7 @@ public class GameManager : SingletonManager<GameManager>
             _unit = hit.collider.GetComponent<Unit>();
             return true;
         }
+
         return false;
     }
 
@@ -373,10 +386,10 @@ public class GameManager : SingletonManager<GameManager>
         // 尝试放置建筑
         if(m_PlacementProcess.TryFinalizePlacement(out Vector3 _placementPosition))
         {
+            new BuildingProcess(buildAction, _placementPosition,ActiveUnit as WorkerUnit);
             UnSelectUnit();
             ClearupPlacement();
             ClearActionBarUI();
-            new BuildingProcess(buildAction, _placementPosition);
             AudioManager.Get().PlaySFX(3);
         }
         else

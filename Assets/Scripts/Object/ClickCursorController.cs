@@ -30,6 +30,7 @@ public class ClickCursorController : MonoBehaviour
         if(m_Timer < 0f)
         {
             Destroy(gameObject);
+            
         }
     }
 

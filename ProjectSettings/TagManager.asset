@@ -57,5 +57,8 @@ TagManager:
   - name: UI
     uniqueID: 1417067153
     locked: 0
+  - name: Slider
+    uniqueID: 624560591
+    locked: 0
   m_RenderingLayers:
   - Default
