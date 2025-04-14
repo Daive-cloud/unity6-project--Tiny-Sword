@@ -8,11 +8,22 @@ public class StructureUnit : Unit
     public bool IsUnderConstruction => m_BuildingProcess != null;
     [SerializeField] private Slider m_ProcessSlider;
     [SerializeField] private float m_ProcessWindow;
+    [SerializeField] private GameObject m_ContructrueUnit;
+    private EntityFX fx => GetComponent<EntityFX>();
+    private CapsuleCollider2D cd => GetComponent<CapsuleCollider2D>();
+
+    private bool IsWorkerAssigned => m_BuildingProcess.HasActiveWorker;
     private float processTimer;
     protected virtual void Update()
-    {
-        if(IsUnderConstruction && m_BuildingProcess.HasActiveWorker && m_ProcessSlider.value < 1f)
+    {   
+        if(!IsWorkerAssigned)
         {
+            fx.StopBuildingEffect();
+        }
+
+        if(IsUnderConstruction && IsWorkerAssigned && m_ProcessSlider.value < 1f)
+        {
+            fx.PlayBuildingEffect();
             processTimer -= Time.deltaTime;
             if(processTimer<0f)
             {
@@ -21,9 +32,16 @@ public class StructureUnit : Unit
 
                 if(m_ProcessSlider.value >= 1f)
                 {
+                    fx.StopBuildingEffect();
+                    cd.size = new Vector2(1.2f,2.6f);
                     AudioManager.Get().PlaySFX(4);
                     m_ProcessSlider.gameObject.SetActive(false);
                     GetComponent<SpriteRenderer>().sprite = m_BuildingProcess.BuildAction.CompletionSprite;
+
+                    if(m_ContructrueUnit != null)
+                    {
+                        m_ContructrueUnit.SetActive(true);
+                    }
                     FinishedProcess();
                 }
             }
