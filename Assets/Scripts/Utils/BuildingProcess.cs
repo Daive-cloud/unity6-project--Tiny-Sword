@@ -5,7 +5,6 @@ public class BuildingProcess
 {
     private BuildActionSO m_BuildAction;
     private List<WorkerUnit> m_Workers = new();
-
     public bool HasActiveWorker => m_Workers.Count > 0;
     public int workersCount => m_Workers.Count;
     public BuildActionSO BuildAction => m_BuildAction;

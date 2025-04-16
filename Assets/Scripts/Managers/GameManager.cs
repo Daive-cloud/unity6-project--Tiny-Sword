@@ -32,11 +32,6 @@ public class GameManager : SingletonManager<GameManager>
     [SerializeField] private LineRenderer multiSelectRay;
     [SerializeField] private float multiSelectRayWidth = 0.05f;
     [SerializeField] private Color multiSelectRayColor = Color.yellow;
-
-    [Header("Tilemaps")]
-    [SerializeField] private Tilemap m_WalkableTilemap;
-    [SerializeField] private Tilemap m_overlayTilemap;
-    [SerializeField] private Tilemap[] m_unreachableTilemaps;
     
     [Header("Resources Parameters")]
     [SerializeField] private int m_Gold = 100;
@@ -356,9 +351,9 @@ public class GameManager : SingletonManager<GameManager>
     {
         if(m_PlacementProcess != null)
             return;
-
+        var manager = TilemapManager.Get();
         // 先创建PlacementProcess
-        m_PlacementProcess = new(_buildAction,m_WalkableTilemap,m_overlayTilemap,m_unreachableTilemaps);
+        m_PlacementProcess = new(_buildAction,manager);
         
         // 然后再使用它的属性
         m_BuildComfiremationBar.GetComponent<ConstructureUI>().ShowRectanle(_buildAction.GoldCost, _buildAction.WoodCost);

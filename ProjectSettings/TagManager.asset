@@ -11,6 +11,7 @@ TagManager:
   - AudioManager
   - Water
   - Trees
+  - TilemapManager
   layers:
   - Default
   - TransparentFX

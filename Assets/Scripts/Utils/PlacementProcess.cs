@@ -5,19 +5,16 @@ public class PlacementProcess
 {
     private GameObject m_PlacementOutline;
     private BuildActionSO m_BuildAction;
-    private Tilemap m_WalkableTilemap;
-    private Tilemap m_overlayTilemap;
-    private Tilemap[] m_unreachableTilemaps;
     private Sprite m_TileholderSprite;
+    private TilemapManager m_TilemapManager;
     private Vector3Int[] m_HighlightedPosition;
     public BuildActionSO BuildAction => m_BuildAction;
-    public PlacementProcess(BuildActionSO _buildAction,Tilemap _walkableTilemap,Tilemap _overlayTilemap,Tilemap[] _unreachableTilemaps)
+    public PlacementProcess(BuildActionSO _buildAction,TilemapManager _tilemapManager)
     {
+        var manager = TilemapManager.Get();
         m_BuildAction = _buildAction;
-        m_WalkableTilemap = _walkableTilemap;
-        m_overlayTilemap = _overlayTilemap;
+        m_TilemapManager = _tilemapManager;
         m_TileholderSprite = Resources.Load<Sprite>("Image/Tileholder");
-        m_unreachableTilemaps = _unreachableTilemaps;
     }   
 
     public void ShowPlacementOutline()
@@ -54,7 +51,7 @@ public class PlacementProcess
         {
             foreach (var position in m_HighlightedPosition)
             {
-                m_overlayTilemap.SetTile(position, null);
+                m_TilemapManager.OverlayTilemap.SetTile(position, null);
             }
             m_HighlightedPosition = null;
         }
@@ -81,15 +78,15 @@ public class PlacementProcess
         {
             var tile = ScriptableObject.CreateInstance<Tile>();
             tile.sprite = m_TileholderSprite;
-            m_overlayTilemap.SetTile(position, tile);
-            m_overlayTilemap.SetTileFlags(position, TileFlags.None);
-
-            if(canPlaceBuilding(position))
+            m_TilemapManager.OverlayTilemap.SetTile(position, tile);
+            m_TilemapManager.OverlayTilemap.SetTileFlags(position, TileFlags.None);
+    
+            if(m_TilemapManager.CanPlaceBuilding(position))
             {
-                 m_overlayTilemap.SetColor(position, Color.green);
+                m_TilemapManager.OverlayTilemap.SetColor(position, Color.green);
             }
             else{
-                 m_overlayTilemap.SetColor(position, Color.red);
+                m_TilemapManager.OverlayTilemap.SetColor(position, Color.red);
             }
            
         }
@@ -116,42 +113,11 @@ public class PlacementProcess
     {
         foreach(var position in m_HighlightedPosition)
         {
-            if(!canPlaceBuilding(position))
+            if(!m_TilemapManager.CanPlaceBuilding(position))
                 return false;
         }
         return true;
     }
     
-    #region Detect Place to Place Constructure
-    private bool canPlaceBuilding(Vector3Int _placePosition)
-    {
-        return m_WalkableTilemap.HasTile(_placePosition) && !IsPlaceOverUnreachableArea(_placePosition) && !IsPlaceOverObstacle(_placePosition);
-    }
-
-    private bool IsPlaceOverUnreachableArea(Vector3Int _placePosition)
-    {
-        foreach(var tilemap in m_unreachableTilemaps)
-        {
-            if(tilemap.HasTile(_placePosition))
-                return true;
-        }
-        return false;
-    }
-
-    private bool IsPlaceOverObstacle(Vector3Int _placePosition)
-    {
-        Vector3 tileSize = m_WalkableTilemap.cellSize;
-        Collider2D[] colliders = Physics2D.OverlapBoxAll(_placePosition + tileSize * .5f,tileSize * .9f,0f);
-        foreach(var hit in colliders)
-        {
-            if(hit.gameObject.tag == "Unit" || hit.gameObject.tag == "Building")
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    #endregion
+    
 }

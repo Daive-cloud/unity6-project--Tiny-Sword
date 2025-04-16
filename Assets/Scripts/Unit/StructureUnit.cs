@@ -11,16 +11,11 @@ public class StructureUnit : Unit
     [SerializeField] private GameObject m_ContructrueUnit;
     private EntityFX fx => GetComponent<EntityFX>();
     private CapsuleCollider2D cd => GetComponent<CapsuleCollider2D>();
-
     private bool IsWorkerAssigned => m_BuildingProcess.HasActiveWorker;
     private float processTimer;
+    
     protected virtual void Update()
     {   
-        if(!IsWorkerAssigned)
-        {
-            fx.StopBuildingEffect();
-        }
-
         if(IsUnderConstruction && IsWorkerAssigned && m_ProcessSlider.value < 1f)
         {
             fx.PlayBuildingEffect();
@@ -56,6 +51,7 @@ public class StructureUnit : Unit
 
     public virtual void FinishedProcess()
     {
+        fx.StopBuildingEffect();
         m_BuildingProcess.OnConstructionCompleted();
         m_BuildingProcess = null;
     }
